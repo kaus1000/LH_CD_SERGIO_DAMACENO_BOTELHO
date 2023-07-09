@@ -1,104 +1,67 @@
+# Importe as bibliotecas necessárias
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import mean_squared_error
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
 
-# Carregar o dataset de treinamento
-df_train = pd.read_csv('cars_train.csv')
+# Carregue os dados de treinamento e teste
+df_train = pd.read_csv('cars_train.csv', encoding='utf16', delimiter='\t')
+df_test = pd.read_csv('cars_test.csv', encoding='utf-16', delimiter='\t')
 
-# Verificar informações básicas do dataset
-df_train.info()
+# Preencher com um valor constante, como 'N/A'
+df_train['veiculo_alienado'] = df_train['veiculo_alienado'].fillna('N/A')
+df_test['veiculo_alienado'] = df_test['veiculo_alienado'].fillna('N/A')
 
+# Remova colunas desnecessárias
+df_train = df_train.drop(['anunciante'], axis=1)
+df_test = df_test.drop(['anunciante'], axis=1)
 
-# Calcular estatísticas descritivas das variáveis numéricas
-df_train.describe()
+# Separe os dados de treinamento em recursos (X) e variável de destino (y)
+X = df_train.drop('preco', axis=1)
+y = df_train['preco']
 
+# Combine os dados de treinamento e teste para aplicar a codificação one-hot encoding
+df_combined = pd.concat([X, df_test])
 
-# Criar histogramas das variáveis numéricas
-numeric_cols = ['num_fotos', 'ano_de_fabricacao', 'ano_modelo', 'hodometro', 'num_portas']
-df_train[numeric_cols].hist(bins=20, figsize=(12, 8))
-plt.tight_layout()
-plt.show()
+# Codifique variáveis categóricas usando one-hot encoding
+df_combined = pd.get_dummies(df_combined)
 
+# Separe novamente os dados de treinamento e teste
+X = df_combined[:len(df_train)]
+X_test = df_combined[len(df_train):]
 
-# Criar gráficos de barras das variáveis categóricas
-categorical_cols = ['marca', 'modelo', 'versao', 'cambio', 'tipo', 'blindado', 'cor', 'tipo_vendedor', 'cidade_vendedor', 'estado_vendedor', 'anunciante', 'entrega_delivery', 'troca', 'elegivel_revisao', 'dono_aceita_troca', 'veiculo_único_dono', 'revisoes_concessionaria', 'ipva_pago', 'veiculo_licenciado', 'garantia_de_fábrica', 'revisoes_dentro_agenda', 'veiculo_alienado']
-fig, axes = plt.subplots(8, 3, figsize=(18, 24))
-axes = axes.flatten()
+# Lide com valores ausentes usando uma estratégia de imputação (preenchendo com a média)
+imputer = SimpleImputer(strategy='mean')
+X = imputer.fit_transform(X)
+X_test = imputer.transform(X_test)
 
-for i, col in enumerate(categorical_cols):
-    sns.countplot(x=col, data=df_train, ax=axes[i])
-    axes[i].set_xticklabels(axes[i].get_xticklabels(), rotation=45, ha='right')
+# Crie um modelo de árvore de decisão
+# model = DecisionTreeRegressor()
 
-plt.tight_layout()
-plt.show()
-
-
-
-# Calcular a contagem das marcas mais populares em cada estado
-popular_brands = ['Volkswagen', 'Chevrolet', 'Fiat', 'Ford', 'Renault']
-df_popular_brands = df_train[df_train['marca'].isin(popular_brands)]
-popular_brands_by_state = df_popular_brands.groupby(['estado_vendedor', 'marca']).size().unstack()
-
-# Plotar gráfico de barras empilhadas
-popular_brands_by_state.plot(kind='bar', stacked=True, figsize=(12, 8))
-plt.xlabel('Estado')
-plt.ylabel('Contagem')
-plt.title('Distribuição das Marcas Populares por Estado')
-plt.legend(title='Marca')
-plt.xticks(rotation=45, ha='right')
-plt.tight_layout()
-plt.show()
+# Ou, se preferir, crie um modelo de regressão por floresta aleatória
+model = RandomForestRegressor()
 
 
+# Treine o modelo
+model.fit(X, y)
 
-# Filtrar picapes com transmissão automática
-df_pickup_auto = df_train[(df_train['tipo'] == 'picape') & (df_train['cambio'] == 'automático')]
-
-# Calcular a contagem das picapes com transmissão automática em cada estado
-pickup_auto_by_state = df_pickup_auto['estado_vendedor'].value_counts()
-
-# Plotar gráfico de barras
-pickup_auto_by_state.plot(kind='bar', figsize=(12, 8))
-plt.xlabel('Estado')
-plt.ylabel('Contagem')
-plt.title('Distribuição de Picapes com Transmissão Automática por Estado')
-plt.xticks(rotation=45, ha='right')
-plt.tight_layout()
-plt.show()
+# Faça previsões nos dados de treinamento
+y_pred_train = model.predict(X)
 
 
-
-# Calcular a média dos preços de revenda para cada cor de veículo
-mean_price_by_color = df_train.groupby('cor')['preco'].mean().sort_values()
-
-# Plotar gráfico de barras
-mean_price_by_color.plot(kind='bar', figsize=(12, 8))
-plt.xlabel('Cor')
-plt.ylabel('Preço Médio')
-plt.title('Preço Médio de Revenda por Cor do Veículo')
-plt.xticks(rotation=45, ha='right')
-plt.tight_layout()
-plt.show()
+# Calcule o MSE (Mean Squared Error)
+mse = mean_squared_error(y, y_pred_train)
+print('MSE:', mse)
 
 
+# Faça previsões nos dados de teste
+y_pred_test = model.predict(X_test)
 
-# Plotar gráfico de dispersão
-plt.figure(figsize=(12, 8))
-plt.scatter(df_train['num_fotos'], df_train['preco'])
-plt.xlabel('Quantidade de Fotos')
-plt.ylabel('Preço')
-plt.title('Relação entre Quantidade de Fotos e Preço de Revenda')
-plt.tight_layout()
-plt.show()
-
-
-# Plotar gráfico de dispersão
-plt.figure(figsize=(12, 8))
-plt.scatter(df_train['hodometro'], df_train['preco'])
-plt.xlabel('Hodômetro')
-plt.ylabel('Preço')
-plt.title('Relação entre Hodômetro e Preço de Revenda')
-plt.tight_layout()
-plt.show()
+# Salve as previsões em um arquivo
+df_result = pd.DataFrame({'id': df_test['id'], 'preco': y_pred_test})
+df_result.to_csv('predicted.csv', index=False)
 
