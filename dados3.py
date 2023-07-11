@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 import time
+from sklearn.impute import SimpleImputer
 
 # Carregue os dados de treinamento e teste em DataFrames Pandas
 start_time = time.time()
@@ -68,6 +69,14 @@ print("Dividindo os dados de treinamento em treinamento e validação...")
 X_train, X_val, y_train, y_val = train_test_split(X_train, y, test_size=0.3, random_state=42)
 print("Tempo de execução:", time.time() - start_time, "segundos")
 
+# Preencher valores ausentes com a média usando o SimpleImputer do scikit-learn
+start_time = time.time()
+print("Preenchendo valores ausentes...")
+imputer = SimpleImputer()
+X_train = imputer.fit_transform(X_train)
+X_val = imputer.transform(X_val)
+print("Tempo de execução:", time.time() - start_time, "segundos")
+
 # Crie modelos de regressão: Árvore de Decisão, Random Forest e Gradient Boosting
 start_time = time.time()
 print("Criando modelos de regressão...")
@@ -92,6 +101,7 @@ for model in [model_decision_tree, model_random_forest, model_gradient_boosting]
     r2_val = r2_score(y_val, y_pred_val)
     results.append((model.__class__.__name__, mse_train, mse_val, r2_train, r2_val))
     print("Tempo de execução:", time.time() - start_time, "segundos")
+    print()
 
 # Imprima os resultados
 for model_name, mse_train, mse_val, r2_train, r2_val in results:
@@ -115,36 +125,43 @@ start_time = time.time()
 print("Salvando as previsões em um arquivo...")
 df_result = pd.DataFrame({'id': df_test1['id'], 'preco': y_pred_test})
 df_result.to_csv('predicted.csv', index=False)
+print("Tempo de execução:", time.time() - start_time, "segundos")
+
+# Obter as importâncias das características para o modelo de Random Forest
+importances_rf = model_random_forest.feature_importances_
+
+# Criar DataFrame a partir de X_train com as colunas originais
+X_train_df = pd.DataFrame(X_train, columns=X_train.columns)
+
+# Selecionar as categorias/features desejadas
+selected_features = ['num_fotos', 'marca', 'modelo', 'versao', 'ano_de_fabricacao', 'ano_modelo',
+                     'hodometro', 'cambio', 'num_portas', 'tipo', 'blindado', 'cor', 'tipo_vendedor',
+                     'cidade_vendedor', 'estado_vendedor', 'entrega_delivery', 'troca', 'elegivel_revisao',
+                     'dono_aceita_troca', 'veiculo_único_dono', 'revisoes_concessionaria', 'ipva_pago',
+                     'veiculo_licenciado', 'garantia_de_fábrica', 'revisoes_dentro_agenda', 'veiculo_alienado']
+
+# Filtrar o DataFrame com as categorias/features selecionadas
+feature_importances_selected = feature_importances[feature_importances['Feature'].isin(selected_features)]
+
+# Imprimir as importâncias das características
+print(feature_importances_selected)
 
 
-# Análise das principais estatísticas da base de dados
-print("Análise das principais estatísticas da base de dados:")
-df_train1.describe(include='all').transpose()
 
-# Gráfico das principais estatísticas descritivas
-df_train1.hist(figsize=(12, 12), bins=20)
+# Plotar um gráfico de barras das importâncias das características
+plt.figure(figsize=(10, 6))
+plt.bar(feature_importances['Feature'], feature_importances['Random Forest Importance'])
+plt.xticks(rotation='vertical')
+plt.xlabel('Feature')
+plt.ylabel('Importance')
+plt.title('Feature Importances - Random Forest')
 plt.tight_layout()
 plt.show()
-# print("Tempo de execução:", time.time() - start_time, "segundos")
 
-# # Obter as importâncias das características para o modelo de Random Forest
-# start_time = time.time()
-# print("Analisando as importâncias das características...")
-# importances_rf = model_random_forest.feature_importances_
-# feature_importances = pd.DataFrame({
-#     'Feature': X_train.columns,
-#     'Random Forest Importance': importances_rf
-# })
-# feature_importances = feature_importances.sort_values(by='Random Forest Importance', ascending=False)
-# print(feature_importances)
-# print("Tempo de execução:", time.time() - start_time, "segundos")
+# print("Análise das principais estatísticas da base de dados:")
+# df_train1.describe(include='all').transpose()
 
-# # Plotar um gráfico de barras das importâncias das características
-# plt.figure(figsize=(10, 6))
-# plt.bar(feature_importances['Feature'], feature_importances['Random Forest Importance'])
-# plt.xticks(rotation='vertical')
-# plt.xlabel('Feature')
-# plt.ylabel('Importance')
-# plt.title('Feature Importances - Random Forest')
+# # Gráfico das principais estatísticas descritivas
+# df_train1.hist(figsize=(12, 12), bins=20)
 # plt.tight_layout()
 # plt.show()
