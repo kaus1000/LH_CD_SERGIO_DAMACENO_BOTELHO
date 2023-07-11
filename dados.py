@@ -5,8 +5,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_squared_error
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor
 
 # Carregue os dados de treinamento e teste
 df_train = pd.read_csv('cars_train.csv', encoding='utf16', delimiter='\t')
@@ -39,24 +37,25 @@ imputer = SimpleImputer(strategy='mean')
 X = imputer.fit_transform(X)
 X_test = imputer.transform(X_test)
 
-# Crie um modelo de árvore de decisão
-# model = DecisionTreeRegressor()
+# Divida os dados em conjunto de treinamento e teste
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Ou, se preferir, crie um modelo de regressão por floresta aleatória
-model = RandomForestRegressor()
+# Crie um objeto de modelo de regressão linear
+model = LinearRegression()
 
+# Treine o modelo com o conjunto de treinamento
+model.fit(X_train, y_train)
 
-# Treine o modelo
-model.fit(X, y)
+# Faça previsões no conjunto de treinamento e validação
+y_pred_train = model.predict(X_train)
+y_pred_val = model.predict(X_val)
 
-# Faça previsões nos dados de treinamento
-y_pred_train = model.predict(X)
+# Calcule o MSE no conjunto de treinamento e validação
+mse_train = mean_squared_error(y_train, y_pred_train)
+mse_val = mean_squared_error(y_val, y_pred_val)
 
-
-# Calcule o MSE (Mean Squared Error)
-mse = mean_squared_error(y, y_pred_train)
-print('MSE:', mse)
-
+print('MSE (treinamento):', mse_train)
+print('MSE (validação):', mse_val)
 
 # Faça previsões nos dados de teste
 y_pred_test = model.predict(X_test)
@@ -64,4 +63,3 @@ y_pred_test = model.predict(X_test)
 # Salve as previsões em um arquivo
 df_result = pd.DataFrame({'id': df_test['id'], 'preco': y_pred_test})
 df_result.to_csv('predicted.csv', index=False)
-
