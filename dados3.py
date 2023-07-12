@@ -1,167 +1,157 @@
 import pandas as pd
-import dask.dataframe as dd
-from dask_ml.preprocessing import DummyEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.metrics import mean_squared_error, r2_score
+import numpy as np
 import matplotlib.pyplot as plt
-import time
-from sklearn.impute import SimpleImputer
+import seaborn as sns
+from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.feature_selection import SelectFromModel
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import mean_absolute_error
 
-# Carregue os dados de treinamento e teste em DataFrames Pandas
-start_time = time.time()
-print("Carregando os dados de treinamento e teste...")
-df_train1 = pd.read_csv('cars_train.csv', encoding='utf16', delimiter='\t')
-df_test1 = pd.read_csv('cars_test.csv', encoding='utf16', delimiter='\t')
-print("Tempo de execução:", time.time() - start_time, "segundos")
+# Load the training data
+train_df = pd.read_csv('cars_train.csv', encoding='utf-16', sep='\t')
+# Basic statistics
+train_df.describe(include='all')
+# Drop unnecessary columns
+columns_to_drop = ['id', 'elegivel_revisao', 'veiculo_alienado']
+train_df = train_df.drop(columns=columns_to_drop)
 
-# Crie DataFrames Dask a partir dos DataFrames Pandas
-start_time = time.time()
-print("Criando os DataFrames Dask...")
-df_train = dd.from_pandas(df_train1, npartitions=4)
-df_test = dd.from_pandas(df_test1, npartitions=4)
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Combine os dados de treinamento e teste
-start_time = time.time()
-print("Combinando os dados de treinamento e teste...")
-df_combined = dd.concat([df_train, df_test])
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Converta todas as colunas em dados categóricos conhecidos
-start_time = time.time()
-print("Convertendo as colunas em dados categóricos...")
-categorical_columns = ['marca', 'modelo', 'versao', 'cambio', 'tipo', 'cor']
-df_combined = df_combined[categorical_columns].categorize()
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Use DummyEncoder do dask-ml para aplicar one-hot encoding
-start_time = time.time()
-print("Aplicando one-hot encoding...")
-encoder = DummyEncoder()
-df_combined_encoded = encoder.fit_transform(df_combined)
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Concatene os dados codificados com as colunas restantes
-start_time = time.time()
-print("Concatenando os dados codificados...")
-df_combined_final = dd.concat([df_combined_encoded, df_combined.drop(categorical_columns, axis=1)], axis=1)
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Separe novamente os dados de treinamento e teste
-start_time = time.time()
-print("Separando os dados de treinamento e teste...")
-X = df_combined_final.compute(scheduler='single-threaded')
-X_train = X.iloc[:len(df_train)]
-X_test = X.iloc[len(df_train):]
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Separe os dados de treinamento em recursos (X) e variável de destino (y)
-start_time = time.time()
-print("Separando os dados de treinamento em recursos e variável de destino...")
-y = df_train['preco'].compute(scheduler='single-threaded')
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Divida os dados de treinamento em treinamento e validação
-start_time = time.time()
-print("Dividindo os dados de treinamento em treinamento e validação...")
-X_train, X_val, y_train, y_val = train_test_split(X_train, y, test_size=0.3, random_state=42)
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Preencher valores ausentes com a média usando o SimpleImputer do scikit-learn
-start_time = time.time()
-print("Preenchendo valores ausentes...")
-imputer = SimpleImputer()
-X_train = imputer.fit_transform(X_train)
-X_val = imputer.transform(X_val)
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Crie modelos de regressão: Árvore de Decisão, Random Forest e Gradient Boosting
-start_time = time.time()
-print("Criando modelos de regressão...")
-model_decision_tree = DecisionTreeRegressor()
-model_random_forest = RandomForestRegressor()
-model_gradient_boosting = GradientBoostingRegressor()
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Lista para armazenar os resultados de MSE e R² de cada modelo
-results = []
-
-# Treine e avalie cada modelo
-for model in [model_decision_tree, model_random_forest, model_gradient_boosting]:
-    start_time = time.time()
-    print("Treinando o modelo", model.__class__.__name__ + "...")
-    model.fit(X_train, y_train)
-    y_pred_train = model.predict(X_train)
-    y_pred_val = model.predict(X_val)
-    mse_train = mean_squared_error(y_train, y_pred_train)
-    mse_val = mean_squared_error(y_val, y_pred_val)
-    r2_train = r2_score(y_train, y_pred_train)
-    r2_val = r2_score(y_val, y_pred_val)
-    results.append((model.__class__.__name__, mse_train, mse_val, r2_train, r2_val))
-    print("Tempo de execução:", time.time() - start_time, "segundos")
-    print()
-
-# Imprima os resultados
-for model_name, mse_train, mse_val, r2_train, r2_val in results:
-    print(f"{model_name}:")
-    print("MSE (Treinamento):", mse_train)
-    print("MSE (Validação):", mse_val)
-    print("R² (Treinamento):", r2_train)
-    print("R² (Validação):", r2_val)
-    print()
-
-# Faça previsões nos dados de teste usando o modelo de Gradient Boosting
-start_time = time.time()
-print("Fazendo previsões nos dados de teste...")
-model = model_gradient_boosting
-model.fit(X_train, y_train)
-y_pred_test = model.predict(X_test)
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Salve as previsões em um arquivo
-start_time = time.time()
-print("Salvando as previsões em um arquivo...")
-df_result = pd.DataFrame({'id': df_test1['id'], 'preco': y_pred_test})
-df_result.to_csv('predicted.csv', index=False)
-print("Tempo de execução:", time.time() - start_time, "segundos")
-
-# Obter as importâncias das características para o modelo de Random Forest
-importances_rf = model_random_forest.feature_importances_
-
-# Criar DataFrame a partir de X_train com as colunas originais
-X_train_df = pd.DataFrame(X_train, columns=X_train.columns)
-
-# Selecionar as categorias/features desejadas
-selected_features = ['num_fotos', 'marca', 'modelo', 'versao', 'ano_de_fabricacao', 'ano_modelo',
-                     'hodometro', 'cambio', 'num_portas', 'tipo', 'blindado', 'cor', 'tipo_vendedor',
-                     'cidade_vendedor', 'estado_vendedor', 'entrega_delivery', 'troca', 'elegivel_revisao',
-                     'dono_aceita_troca', 'veiculo_único_dono', 'revisoes_concessionaria', 'ipva_pago',
-                     'veiculo_licenciado', 'garantia_de_fábrica', 'revisoes_dentro_agenda', 'veiculo_alienado']
-
-# Filtrar o DataFrame com as categorias/features selecionadas
-feature_importances_selected = feature_importances[feature_importances['Feature'].isin(selected_features)]
-
-# Imprimir as importâncias das características
-print(feature_importances_selected)
-
-
-
-# Plotar um gráfico de barras das importâncias das características
+# Check the data after dropping
+train_df.head()
+# Plot histogram for price
 plt.figure(figsize=(10, 6))
-plt.bar(feature_importances['Feature'], feature_importances['Random Forest Importance'])
-plt.xticks(rotation='vertical')
-plt.xlabel('Feature')
-plt.ylabel('Importance')
-plt.title('Feature Importances - Random Forest')
-plt.tight_layout()
+plt.hist(train_df['preco'], bins=30, color='skyblue', edgecolor='black')
+plt.title('Distribution of Price')
+plt.xlabel('Price')
+plt.ylabel('Frequency')
+plt.grid(axis='y', alpha=0.75)
 plt.show()
 
-# print("Análise das principais estatísticas da base de dados:")
-# df_train1.describe(include='all').transpose()
+# Plot histogram for year of manufacture
+plt.figure(figsize=(10, 6))
+plt.hist(train_df['ano_de_fabricacao'], bins=30, color='skyblue', edgecolor='black')
+plt.title('Distribution of Year of Manufacture')
+plt.xlabel('Year of Manufacture')
+plt.ylabel('Frequency')
+plt.grid(axis='y', alpha=0.75)
+plt.show()
 
-# # Gráfico das principais estatísticas descritivas
-# df_train1.hist(figsize=(12, 12), bins=20)
-# plt.tight_layout()
-# plt.show()
+# Plot bar plot for top 10 states
+top_states = train_df['estado_vendedor'].value_counts().nlargest(10)
+
+plt.figure(figsize=(12, 6))
+top_states.plot(kind='bar', color='skyblue', edgecolor='black')
+plt.title('Top 10 States')
+plt.xlabel('State')
+plt.ylabel('Frequency')
+plt.grid(axis='y', alpha=0.75)
+plt.show()
+# Plot bar plot for transmission types
+transmission_counts = train_df['cambio'].value_counts()
+
+plt.figure(figsize=(10, 6))
+transmission_counts.plot(kind='bar', color='skyblue', edgecolor='black')
+plt.title('Transmission Types')
+plt.xlabel('Transmission Type')
+plt.ylabel('Frequency')
+plt.grid(axis='y', alpha=0.75)
+plt.show()
+# Plot bar plot for top 10 brands
+top_brands = train_df['marca'].value_counts().nlargest(10)
+
+plt.figure(figsize=(12, 6))
+top_brands.plot(kind='bar', color='skyblue', edgecolor='black')
+plt.title('Top 10 Car Brands')
+plt.xlabel('Brand')
+plt.ylabel('Frequency')
+plt.grid(axis='y', alpha=0.75)
+plt.show()
+# Calculate the mean price by brand
+mean_price_by_brand = train_df.groupby('marca')['preco'].mean()
+
+# Plot the mean price by brand
+plt.figure(figsize=(10, 5))
+sns.barplot(x=mean_price_by_brand.index, y=mean_price_by_brand.values)
+plt.xticks(rotation=90)
+plt.xlabel('Brand')
+plt.ylabel('Mean Price')
+plt.title('Mean Price by Brand')
+plt.show()
+
+
+# Hypothesis 1: Cars from popular brands are cheaper than those from other brands.
+
+# Define popular brands
+popular_brands = ['VOLKSWAGEN', 'CHEVROLET', 'FORD']
+
+# Calculate average price for popular brands
+avg_price_popular_brands = train_df[train_df['marca'].isin(popular_brands)]['preco'].mean()
+
+# Calculate average price for other brands
+avg_price_other_brands = train_df[~train_df['marca'].isin(popular_brands)]['preco'].mean()
+
+avg_price_popular_brands, avg_price_other_brands
+
+
+# Hypothesis 2: Cars with automatic transmission are more expensive than cars with other types of transmission.
+
+# Calculate average price for cars with automatic transmission
+avg_price_auto = train_df[train_df['cambio'] == 'Automática']['preco'].mean()
+
+# Calculate average price for cars with other types of transmission
+avg_price_other_trans = train_df[train_df['cambio'] != 'Automática']['preco'].mean()
+
+avg_price_auto, avg_price_other_trans
+
+
+
+# Hypothesis 3: Cars that are still under factory warranty are more expensive than those that are not.
+
+# Calculate average price for cars under factory warranty
+avg_price_warranty = train_df[train_df['garantia_de_fábrica'] == 'Garantia de fábrica']['preco'].mean()
+
+# Calculate average price for cars not under factory warranty
+avg_price_no_warranty = train_df[train_df['garantia_de_fábrica'] != 'Garantia de fábrica']['preco'].mean()
+
+avg_price_warranty, avg_price_no_warranty
+
+# Business Question 1: Which is the best state registered in the database to sell a popular brand car and why?
+
+# Filter dataframe for cars from popular brands
+popular_brands_df = train_df[train_df['marca'].isin(popular_brands)]
+
+# Group by state and calculate average price
+state_avg_price_popular_brands = popular_brands_df.groupby('estado_vendedor')['preco'].mean()
+
+# Find the state with the highest average price
+best_state_to_sell_popular_brand = state_avg_price_popular_brands.idxmax()
+
+best_state_to_sell_popular_brand
+
+
+# Business Question 2: Which is the best state to buy a pickup with automatic transmission and why?
+
+# Filter dataframe for pickups with automatic transmission
+auto_pickups_df = train_df[(train_df['cambio'] == 'Automática') & (train_df['tipo'] == 'Picape')]
+
+# Group by state and calculate average price
+state_avg_price_auto_pickups = auto_pickups_df.groupby('estado_vendedor')['preco'].mean()
+
+# Find the state with the lowest average price
+best_state_to_buy_auto_pickup = state_avg_price_auto_pickups.idxmin()
+
+best_state_to_buy_auto_pickup
+
+# Business Question 3: Which is the best state to buy cars that are still under factory warranty and why?
+
+# Filter dataframe for cars under factory warranty
+warranty_df = train_df[train_df['garantia_de_fábrica'] == 'Garantia de fábrica']
+
+# Group by state and calculate average price
+state_avg_price_warranty = warranty_df.groupby('estado_vendedor')['preco'].mean()
+
+# Find the state with the lowest average price
+best_state_to_buy_warranty = state_avg_price_warranty.idxmin()
+
+best_state_to_buy_warranty
+
+
