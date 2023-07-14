@@ -31,19 +31,18 @@ def load_Test_Data():
     df_test = pd.read_csv('cars_test.csv', encoding='utf16', delimiter='\t')
     return df_test
 
+# Função para realizar a análise exploratória dos dados
 def exploratory_Data_Analysis(df):
-    print("Carregando o total de linhas e colunas:\n")
-    #Análise Exploratória dos Dados
-    # Total de linhas e colunas
+    print("Realizando a análise exploratória dos dados:\n")
+    print("Total de linhas e colunas:")
     print(df.shape)
-    #Primeiras linhas 
+    print("Primeiras linhas do dataset:")
     print(df.head())
-    #Amostra aleatória
-    print("Carregando amostra aleatória\n")
-    
+    print("Amostra aleatória do dataset:")
     print(df.sample(5))
-
+    print("Informações sobre o dataset:")
     print(df.info())
+    
 # def data_Enrichment(df):
 #     #ENRIQUECIMENTO DOS DADOS
 #     # Criando a variável 'idade_do_carro'
