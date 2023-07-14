@@ -70,7 +70,7 @@ def predict_test_data(model):
 
     # Salvar as previsões em um arquivo CSV
     print("Salvando as previsões em um arquivo CSV...")
-    predictions.to_csv('predictions.csv', index=False)
+    predictions.to_csv('predicted.csv', index=False)
 
     print("Previsões concluídas!")
     
