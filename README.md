@@ -71,20 +71,5 @@ pip install -r requirements.txt
 Depois de ter todas as bibliotecas necessárias, você pode clonar este repositório e abrir o notebook Regressão.ipynb em um servidor de notebook Jupyter.
 
 
-## :wave: Social
 
-Siga @sergiodb121 nas redes :wink:
-<br />
-
-- [Instagram](https://www.instagram.com/sergiodb121/)
-- [LinkedIn](https://www.linkedin.com/in/s%C3%A9rgio-damaceno-botelho-ab9a24184/)
-
-<br />
-
-Siga a @Rocketseat nas redes
-<br />
-
-- [Website](https://rocketseat.com.br/)
-- [YouTube](https://www.youtube.com/channel/UCSfwM5u0Kce6Cce8_S72olg)
-- [Instagram](https://www.instagram.com/rocketseat_oficial/?hl=pt-br)
 
