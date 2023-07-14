@@ -5,7 +5,6 @@ import seaborn as sns
 # Manipulação de dados
 import pandas as pd
 import numpy as np
-import os # accessing directory structure
 
 #LinearRegression
 from sklearn.model_selection import train_test_split
@@ -17,411 +16,449 @@ from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestRegressor
 
 # Normalização dos dados
+from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import PolynomialFeatures
-#from sklearn.preprocessing import MinMaxScaler
 
-#Carregar o csv para Dataframe
-df = pd.read_csv('cars_train.csv',encoding='utf16', delimiter='\t')
 
-
-#Análise Exploratória dos Dados
-# Total de linhas e colunas
-print(df.shape)
-
-#Primeiras linhas 
-print(df.head())
-#Amostra aleatória
-print(df.sample(5))
-
-print(df.info())
-
-#ENRIQUECIMENTO DOS DADOS
-#Colunas Novas
-# Criando a variável 'idade_do_carro'
-df['idade_do_carro'] = pd.to_datetime('today').year - df['ano_de_fabricacao']
-
-# Criando a variável 'é_luxo'
-marcas_de_luxo = ['BMW', 'Mercedes-Benz', 'Audi', 'Lexus', 'Porsche', 'Ferrari', 'Lamborghini'] # Adicione outras marcas conforme necessário
-df['é_luxo'] = df['marca'].apply(lambda x: 1 if x in marcas_de_luxo else 0)
-df['marca_modelo'] = df['marca'] + "_" + df['modelo']
-
-df.head()
-#Lista de itens da variavél dammy
-categorical_columns = ['id', 'marca', 'modelo', 'versao', 'cambio', 'tipo', 
-                       'blindado', 'cor', 'tipo_vendedor', 'cidade_vendedor', 
-                       'estado_vendedor', 'anunciante', 'dono_aceita_troca',
-                       'veiculo_único_dono', 'revisoes_concessionaria', 'ipva_pago',
-                       'veiculo_licenciado', 'garantia_de_fábrica', 'revisoes_dentro_agenda','é_luxo','marca_modelo']
-# for col in categorical_columns:
-#     print(f'Column: {col}')
-#     print(df[col].value_counts(normalize=True))
-#     print()
-
-fig, ax = plt.subplots(figsize=(8, 5))
-ax.set_title('BoxPlot')
-sns.set_palette("pastel")
-sns.boxplot(x='preco', y='cor', data=df, width=0.6, fliersize=2.5)
-plt.title('BoxPlot - preco x cor'); plt.show()
-
-
-
-
-
-
-#VERIFICAÇÃO DE DADOS FALTANTES
-print('TOTAL Null\n')
-print(df.isnull().sum(),'\n')
-print('TOTAL NA\n')
-print(df.isna().sum(),)
-
-
-#Retirada da coluna vazia veiculo_alienado
-columns_to_drop = ['veiculo_alienado']
-df = df.drop(columns=columns_to_drop)
-print(df.shape)
-
-
-
-
-
-#AVALIAÇÃO
-df.hist(bins=80, figsize=(18,12),color="red"); plt.show()
-fig, axs = plt.subplots(6, 1, figsize=(8, 20))
-
-# Plota um histograma para o preço
-axs[0].hist(df['preco'], bins=30, color='skyblue', edgecolor='black')
-axs[0].set_title('Distribuição do Preço', fontsize=10)
-axs[0].set_xlabel('Preço',fontsize=8)
-axs[0].set_ylabel('Frequência')
-axs[0].grid(axis='y', alpha=0.75)
-
-# Plota um histograma para o ano de fabricação
-axs[1].hist(df['ano_de_fabricacao'], bins=30, color='skyblue', edgecolor='black')
-axs[1].set_title('Distribuição do Ano de Fabricação' , fontsize=10)
-axs[1].set_xlabel('Ano de Fabricação' , fontsize=8)
-axs[1].set_ylabel('Frequência' , fontsize=8)
-axs[1].grid(axis='y', alpha=0.75)
-
-# Plota um gráfico de barras para os 10 estados com mais registros
-top_states = df['estado_vendedor'].value_counts().nlargest(10)
-top_states.plot(kind='bar', color='skyblue', edgecolor='black', ax=axs[2])
-axs[2].set_xticklabels(axs[2].get_xticklabels(), rotation=50,fontsize=6)
-axs[2].set_title('10 Estados com mais Registros' , fontsize=10)
-axs[2].set_xlabel('Estado' , fontsize=8)
-axs[2].set_ylabel('Frequência' , fontsize=8)
-axs[2].grid(axis='x', alpha=0.75)
-
-# Plota um gráfico de barras para os tipos de transmissão
-transmission_counts = df['cambio'].value_counts()
-transmission_counts.plot(kind='bar', color='skyblue', edgecolor='black', ax=axs[3])
-axs[3].set_xticklabels(axs[3].get_xticklabels(), rotation=50, fontsize=6)
-axs[3].set_title('Tipos de Transmissão' , fontsize=10)
-axs[3].set_xlabel('Tipo de Transmissão', fontsize=6)
-axs[3].set_ylabel('Frequência', fontsize=8)
-axs[3].grid(axis='y', alpha=0.75)
-
-# Plota um gráfico de barras para as 10 marcas com mais registros
-top_brands = df['marca'].value_counts().nlargest(10)
-top_brands.plot(kind='bar', color='skyblue', edgecolor='black', ax=axs[4])
-axs[4].set_xticklabels(axs[4].get_xticklabels(), rotation=50, fontsize=6)
-axs[4].set_title('10 Marcas com mais Registros', fontsize=10)
-axs[4].set_xlabel('Marca', fontsize=8)
-axs[4].set_ylabel('Frequência', fontsize=8)
-axs[4].grid(axis='y', alpha=0.75)
-
-# Calcula o preço médio por marca
-mean_price_by_brand = df.groupby('marca')['preco'].mean()
-
-# Plota o preço médio por marca
-sns.barplot(x=mean_price_by_brand.index, y=mean_price_by_brand.values, ax=axs[5])
-axs[5].set_xticklabels(axs[5].get_xticklabels(), rotation=45)
-axs[5].set_xlabel('Marca', fontsize=10)
-axs[5].set_ylabel('Preço Médio', fontsize=8)
-axs[5].set_title('Preço Médio por Marca', fontsize=8)
-
-# Ajusta o layout para melhor visualização
-plt.subplots_adjust(hspace=0.5)
-plt.tight_layout()
-plt.show()
-
-
-
-#VERIFICAÇÃO DE OUTLIERS
-
-# Hipótese 1: Carros de marcas populares são mais baratos do que os de outras marcas.
-popular_brands = ['VOLKSWAGEN', 'CHEVROLET', 'FORD']
-avg_price_popular_brands = df[df['marca'].isin(popular_brands)]['preco'].mean()
-avg_price_other_brands = df[~df['marca'].isin(popular_brands)]['preco'].mean()
-
-# Hipótese 2: Carros com transmissão automática são mais caros do que carros com outros tipos de transmissão.
-avg_price_auto = df[df['cambio'] == 'Automática']['preco'].mean()
-avg_price_other_trans = df[df['cambio'] != 'Automática']['preco'].mean()
-
-# Hipótese 3: Carros que ainda estão na garantia de fábrica são mais caros do que aqueles que não estão.
-avg_price_warranty = df[df['garantia_de_fábrica'] == 'Garantia de fábrica']['preco'].mean()
-avg_price_no_warranty = df[df['garantia_de_fábrica'] != 'Garantia de fábrica']['preco'].mean()
-
-# Pergunta de negócio 1: Qual é o melhor estado registrado na base de dados para vender um carro de marca popular e por quê?
-df_popular_brands = df[df['marca'].isin(popular_brands)]
-avg_price_state_popular_brands = df_popular_brands.groupby('estado_vendedor')['preco'].mean()
-best_state_to_sell_popular_brand = avg_price_state_popular_brands.idxmax()
-
-# Pergunta de negócio 2: Qual é o melhor estado para comprar uma picape com transmissão automática e por quê?
-df_automatic_pickups = df[(df['cambio'] == 'Automática') & (df['tipo'] == 'Picape')]
-avg_price_state_automatic_pickups = df_automatic_pickups.groupby('estado_vendedor')['preco'].mean()
-best_state_to_buy_automatic_pickup = avg_price_state_automatic_pickups.idxmin()
-
-# Pergunta de negócio 3: Qual é o melhor estado para comprar carros que ainda estão na garantia de fábrica e por quê?
-df_warranty = df[df['garantia_de_fábrica'] == 'Garantia de fábrica']
-avg_price_state_warranty = df_warranty.groupby('estado_vendedor')['preco'].mean()
-best_state_to_buy_warranty = avg_price_state_warranty.idxmin()
-
-{
-    "avg_price_popular_brands": avg_price_popular_brands,
-    "avg_price_other_brands": avg_price_other_brands,
-    "avg_price_auto": avg_price_auto,
-    "avg_price_other_trans": avg_price_other_trans,
-    "avg_price_warranty": avg_price_warranty,
-    "avg_price_no_warranty": avg_price_no_warranty,
-    "best_state_to_sell_popular_brand": best_state_to_sell_popular_brand,
-    "best_state_to_buy_automatic_pickup": best_state_to_buy_automatic_pickup,
-    "best_state_to_buy_warranty": best_state_to_buy_warranty,
-}
-
-
-
-
-
-#TRANSFORMANDO CATEGORIAS EM VALORES
-#Ajuste das variáveis categóricas para valores 0 e 1
-df = pd.get_dummies(df, columns=categorical_columns, prefix=['id', 'marca', 'modelo', 'versao', 'cambio', 'tipo', 
-                       'blindado', 'cor', 'tipo_vendedor', 'cidade_vendedor', 
-                       'estado_vendedor', 'anunciante', 'dono_aceita_troca',
-                       'veiculo_único_dono', 'revisoes_concessionaria', 'ipva_pago',
-                       'veiculo_licenciado', 'garantia_de_fábrica', 'revisoes_dentro_agenda','é_luxo','marca_modelo'])
-
-
-#CORRELAÇÃO ENTRE AS VARIÁVEIS
-plt.figure(figsize=(9,7))
-sns.set_theme()
-sns.heatmap(df.corr(), annot=True, fmt=".1f",linewidth=.5 ,cmap="RdBu");plt.show()
-
-
-# Correlação entre as variáveis e a váriavel alvo
-df.corr()["preco"].sort_values(ascending = False)
-
-
-#Separação dos dados em Treino e Teste
-
-#DADOS DAS VARIÁVEIS INDEPENDENTES
-X = df.drop(["preco"], axis = 1)
-
-#DADOS DA VARIÁVEL DEPENDENTE, QUE QUEREMOS ENCONTRAR
-y = df["preco"]
-
-#DIVISÃO DO DATA FRAME EM TEST E TREINAMENTO 70% TREINAMENTO E 30% TESTE
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state=30)
-
-#Tamanho das Amostras de Treino e Teste
-print(f"X_train dimensões {X_train.shape} e tamanho {X_train.size}")
-print(f"X_test dimensões {X_test.shape} e tamanho {X_test.size}")
-print(f"y_train dimensões {y_train.shape} e tamanho {y_train.size}")
-print(f"y_test dimensões {y_test.shape} e tamanho {y_test.size}")
-
-#Modelo LinearRegression()
-# Criando o modelo LinearRegression()
-regLinear = LinearRegression()
-# Realizar treinamento do modelo
-regLinear.fit(X_train, y_train)
-# Realizar predição com os dados separados para teste
-pred_regLinear = regLinear.predict(X_test)
-
-
-#intercept
-iRG = (regLinear.intercept_)
-print("Intercept: "+str(iRG))
-# Visualização dos 03 primeiros resultados
-print(f'Predição amostra de 3: {pred_regLinear[:3]}')
-#Mean absolute error
-maeRG = mean_absolute_error(y_test, pred_regLinear)
-print('Erro absoluto médio (MAE): %.2f' % maeRG)
-#Mean squared error
-mRG = mean_squared_error(y_test, pred_regLinear)
-print('Erro quadrado médio (MSE): %.2f' % mRG)
-# R2
-r2RG = r2_score(y_test, pred_regLinear)
-print('R2: %.6f' % r2RG)
-
-#VALIDAÇÃO DO MODELO 1: CrossValidation
-cv_score = np.sqrt(-cross_val_score(regLinear,X_test,pred_regLinear,cv=5,scoring='neg_mean_squared_error'))
-cv1RG = cv_score.mean()
-cv2RG = cv_score.std()
-print("Média: %.6f" %cv1RG)
-print("Desvio Padrão: %.6f" %cv2RG)
-print("Shape:",pred_regLinear.shape)
-print("Scores neg_mean_squared_error: ",cv_score)
-
-y_test = np.array(y_test)
-
-
-
-plt.figure(figsize=(15,5))
-plt.plot(pred_regLinear[:100], linewidth=1.5, color='r')
-plt.plot(y_test[:100], linewidth=1.2,color='b')
-plt.title('Valores preditos x  Valores reais : Modelo Regressão Linear',size=18)
-plt.legend(['Predições','Real'],fontsize=12)
-plt.show()
-
-#Modelo LinearRegression() com dados normalizados StandardScaler()
-scaler = StandardScaler()
-X_train_scaler = scaler.fit_transform(X_train)
-X_test_scaler = scaler.transform(X_test)
-# Inicializa a regressão linear
-rLinear = LinearRegression()
-# Ajusta o modelo aos dados de treinamento (aprende os coeficientes)
-rLinear.fit(X_train_scaler,y_train)
-# Faz previsões nos dados de teste
-y_pred_scaler = rLinear.predict(X_test_scaler)
-
-# VISUALIZANDO OS RESULTADOS
-# Interceptação
-iRL = (rLinear.intercept_)
-print("Interceptação: "+str(iRL))
-# Visualização dos 3 primeiros resultados
-print(f'Previsão amostra de 3: {y_pred_scaler[:3]}')
-# Erro absoluto médio
-maeRL = mean_absolute_error(y_test, pred_regLinear)
-print('Erro Absoluto Médio (MAE): %.2f' % maeRL)
-# Erro quadrático médio
-mRL = mean_squared_error(y_test, y_pred_scaler)
-print('Erro Quadrático Médio (MSE): %.2f' % mRL)
-# R2
-r2RL = r2_score(y_test, y_pred_scaler)
-print('R2: %.6f' % r2RL)
-
-
-# VALIDAÇÃO DO MODELO 2: CrossValidation
-
-cv_score = np.sqrt(-cross_val_score(rLinear,X_test_scaler,y_pred_scaler,cv=5,scoring='neg_mean_squared_error'))
-cv1RL = cv_score.mean()
-cv2RL = cv_score.std()
-print("Média: %.6f" %cv1RL)
-print("Desvio Padrão: %.6f" %cv2RL)
-print("Shape:",pred_regLinear.shape)
-print("Scores neg_mean_squared_error: ",cv_score)
-
-y_test = np.array(y_test)
-
-plt.figure(figsize=(15,5))
-plt.plot(y_pred_scaler[:100], linewidth=1.5, color='r')
-plt.plot(y_test[:100], linewidth=1.2,color='b')
-plt.title('Valores previstos x Valores reais: Modelo Regressão Linear com StandardScaler()',size=18)
-plt.legend(['Previsões','Real'],fontsize=12)
-plt.show()
-
-# Modelo LinearRegression() com dados normalizados PolynomialFeatures()
-poly = PolynomialFeatures()
-X_train_poly = poly.fit_transform(X_train)
-X_test_poly = poly.fit_transform(X_test)
-
-# Inicializa a regressão linear
-rLinear_poly = LinearRegression()
-# Ajusta o modelo aos dados de treinamento (aprende os coeficientes)
-rLinear_poly.fit(X_train_poly,y_train)
-# Faz previsões nos dados de teste
-y_pred_poly = rLinear_poly.predict(X_test_poly)
-
-
-#VISUALIZANDO OS RESULTADOS
-#intercept
-iRLpoly = (rLinear_poly.intercept_)
-print("Intercept: "+str(iRLpoly))
-# Visualização dos 03 primeiros resultados
-print(f'Predição amostra de 3: {y_pred_poly[:3]}')
-#Mean absolute error
-maeRLpoly = mean_absolute_error(y_test, y_pred_poly)
-print('Erro absoluto médio: %.2f' % maeRLpoly)
-#Mean squared error
-mRLpoly = mean_squared_error(y_test, y_pred_poly)
-print('Erro quadrado médio: %.2f' % mRLpoly)
-# R2
-r2RLpoly = r2_score(y_test, y_pred_poly)
-print('R2: %.6f' % r2RLpoly)
-
-#VALIDAÇÃO DO MODELO 3: CrossValidation
-cv_score = np.sqrt(-cross_val_score(rLinear_poly,X_test_poly,y_pred_poly,cv=5,scoring='neg_mean_squared_error'))
-cv1RLpoly = cv_score.mean()
-cv2RLpoly = cv_score.std()
-print("Média: %.6f" %cv1RLpoly)
-print("Desvio Padrão: %.6f" %cv2RLpoly)
-print("Shape:",y_pred_poly.shape)
-print("Scores: ",cv_score)
-
-y_pred_poly = np.array(y_pred_poly)
-y_test = np.array(y_test)
-
-plt.figure(figsize=(15,5))
-plt.plot(y_pred_poly[:100], linewidth=1.5, color='r')
-plt.plot(y_test[:100], linewidth=1.2,color='b')
-plt.title('Valores preditos x  Valores reais: Modelo Regressão Linear com PolynomialFeatures() ',size=18)
-plt.legend(['Predições','Real'],fontsize=12)
-plt.show()
-
-#Modelo RandomForestRegressor()
-forest_reg = RandomForestRegressor(n_estimators=20,random_state=10)
-forest_reg.fit(X_train , y_train)
-y_pred_forest = forest_reg.predict(X_test)
-
-#intercept
-#não possui intercepr
-iRF = 0
-# Visualização dos 03 primeiros resultados
-print(f'Predição amostra de 3: {y_pred_forest[:3]}')
-#Mean absolute error
-maeRF = mean_absolute_error(y_test, y_pred_forest)
-print('Erro absoluto médio (MAE): %.2f' % maeRF)
-#Mean squared error
-mRF = mean_squared_error(y_test, y_pred_forest)
-print('Erro quadrado médio (MSE): %.2f' % mRF)
-# R2
-r2RF = r2_score(y_test, y_pred_forest)
-print('R2: %.6f' % r2RF)
-
-#VALIDAÇÃO DO MODELO 4: CrossValidation
-cv_score = np.sqrt(-cross_val_score(forest_reg,X_test,y_pred_forest,cv=5,scoring='neg_mean_squared_error'))
-cv1RF = cv_score.mean()
-cv2RF = cv_score.std()
-print("Média: %.6f" %cv1RF)
-print("Desvio Padrão: %.6f" %cv2RF)
-print("Shape:",y_pred_forest.shape)
-print("Scores: ",cv_score)
-
-plt.figure(figsize=(15,5))
-plt.plot(y_pred_forest[:100], linewidth=1.5, color='r')
-plt.plot(y_test[:100], linewidth=1.2,color='b')
-plt.title('Valores preditos x  Valores reais: Random Forest Regressor',size=18)
-plt.legend(['Predições','Real'],fontsize=10)
-plt.show()
-
-#COMPARAÇÃO DOS RESULTADOS
-#RESULTADOS
-models = ['LinearRegression()', 'LR/StandardScaler()', 'LR/PolynomialFeatures()', 'RandomForestRegressor()']
-intercept = [iRG, iRL, iRLpoly, iRF]
-r2 = [r2RG, r2RL, r2RLpoly,r2RF]
-MSE = [mRG, mRL, mRLpoly, mRF]
-MAE = [maeRG, maeRL, maeRLpoly, maeRF]
-cvMean = [cv1RG, cv1RL, cv1RLpoly, cv1RF ]
-cvStd = [cv2RG, cv2RL, cv2RLpoly, cv2RF]
-
-df_comp = pd.DataFrame(list(zip(models,intercept,r2,MSE,MAE,cvMean,cvStd )), columns=['Models', 'intercept', 'R2','MSE', 'MAE', 'cvMean','cvStd'])
-
-from decimal import Decimal
-df_comp['intercept'] = df_comp['intercept'].map(lambda x: "{:.2f}".format(x))
-df_comp['R2'] = df_comp['R2'].map(lambda x: round(x,4))
-df_comp['MSE'] = df_comp['MSE'].map(lambda x: "{:.2f}".format(x))
-df_comp['MAE'] = df_comp['MAE'].map(lambda x: round(x,2))
-df_comp['cvMean'] = df_comp['cvMean'].map(lambda x: round(x,2))
-df_comp['cvStd'] = df_comp['cvStd'].map(lambda x: round(x,2))
-
-print(df_comp)
+def load_training_Data():
+    print("Carregando o dataset..\n")
+    df = pd.read_csv('cars_train.csv', encoding='utf16', delimiter='\t')
+    return df
+
+def load_Test_Data():
+    print("Carregando o dataset de teste..\n")
+    df_test = pd.read_csv('cars_test.csv', encoding='utf16', delimiter='\t')
+    return df_test
+
+def exploratory_Data_Analysis(df):
+    print("Carregando o total de linhas e colunas:\n")
+    #Análise Exploratória dos Dados
+    # Total de linhas e colunas
+    print(df.shape)
+    #Primeiras linhas 
+    print(df.head())
+    #Amostra aleatória
+    print("Carregando amostra aleatória\n")
+    
+    print(df.sample(5))
+
+    print(df.info())
+# def data_Enrichment(df):
+#     #ENRIQUECIMENTO DOS DADOS
+#     # Criando a variável 'idade_do_carro'
+#     df['idade_do_carro'] = pd.to_datetime('today').year - df['ano_de_fabricacao']
+#     # Criando a variável 'luxo'
+#     marcas_de_luxo = ['BMW', 'Mercedes-Benz', 'Audi', 'Lexus', 'Porsche', 'Ferrari', 'Lamborghini'] 
+#     df['luxo'] = df['marca'].apply(lambda x: 1 if x in marcas_de_luxo else 0)
+#     df['marca_modelo'] = df['marca'] + "_" + df['modelo']
+#     print("Criando colunas novas com dados já existentes\n")
+#     df.head()
+    
+#     return df
+    
+    
+def predict_test_data(model):
+    # Carregar os dados de teste
+    print("Carregando os dados de teste...")
+    df_test = load_Test_Data()
+
+    # Verificar a existência de valores ausentes nos dados
+    print("Verificando a existência de valores ausentes...")
+    df_test = missing_Data_Verification(df_test)
+
+    # Transformar as colunas categóricas
+    print("Transformando as colunas categóricas...")
+    df_test = transforming_categorical_columns(df_test)
+
+    # Lidar com valores ausentes nos dados
+    print("Lidando com valores ausentes...")
+    df_test = missing_Values(df_test)
+
+    # Agora podemos fazer previsões com o modelo
+    print("Fazendo previsões...")
+    y_pred = model.predict(df_test)
+
+    # Criar um novo DataFrame com os IDs e os preços previstos
+    print("Criando o DataFrame de previsões...")
+    predictions = pd.DataFrame({'id': df_test['id'], 'preco': y_pred})
+
+    # Salvar as previsões em um arquivo CSV
+    print("Salvando as previsões em um arquivo CSV...")
+    predictions.to_csv('predictions.csv', index=False)
+
+    print("Previsões concluídas!")
+
+
+
+
+def transforming_categorical_columns(df):
+    #TRANSFORMANDO CATEGORIAS EM VALORES
+    #Ajuste das variáveis categóricas para valores 0 e 1
+    print("Transformando colunas categoricas em valores 0 e 1.\n")
+    categorical_columns = ['id', 'marca', 'modelo', 'versao', 'cambio', 'tipo', 
+                        'blindado', 'cor', 'tipo_vendedor', 'cidade_vendedor', 
+                        'estado_vendedor', 'anunciante', 'dono_aceita_troca',
+                        'veiculo_único_dono', 'revisoes_concessionaria', 'ipva_pago',
+                        'veiculo_licenciado', 'garantia_de_fábrica', 'revisoes_dentro_agenda']
+    # Criar uma cópia do DataFrame original
+    df_encoded = df.copy()
+    # Aplicar Label Encoding em todas as colunas categóricas
+    label_encoder = LabelEncoder()
+    try:
+        for col in categorical_columns:
+            df_encoded[col] = label_encoder.fit_transform(df[col])
+    except:
+        pass
+        
+    return df_encoded
+   
+
+def visualize_data(df):
+    #AVALIAÇÃO
+    # Visualizando os dados
+    print("Carregando graficos para vizualização dos dados.\n")
+
+    print(df.shape)
+    df.hist(bins=80, figsize=(16,12),color="red")
+    plt.show()
+    fig, axs = plt.subplots(3, 2, figsize=(8, 13))
+
+    axs[0, 0].hist(df['preco'], bins=30, color='skyblue', edgecolor='black')
+    axs[0, 0].set_title('Distribuição do Preço', fontsize=10)
+    axs[0, 0].set_xlabel('Preço',fontsize=8)
+    axs[0, 0].set_ylabel('Frequência')
+    axs[0, 0].grid(axis='y', alpha=0.75)
+
+    axs[0, 1].hist(df['ano_de_fabricacao'], bins=30, color='skyblue', edgecolor='black')
+    axs[0, 1].set_title('Distribuição do Ano de Fabricação' , fontsize=10)
+    axs[0, 1].set_xlabel('Ano de Fabricação' , fontsize=8)
+    axs[0, 1].set_ylabel('Frequência' , fontsize=8)
+    axs[0, 1].grid(axis='y', alpha=0.75)
+
+    top_states = df['estado_vendedor'].value_counts().nlargest(10)
+    top_states.plot(kind='bar', color='skyblue', edgecolor='black', ax=axs[1, 0])
+    axs[1, 0].set_xticklabels(axs[1, 0].get_xticklabels(), rotation=45,fontsize=6)
+    axs[1, 0].set_title('10 Estados com mais Registros' , fontsize=8)
+    axs[1, 0].set_ylabel('Frequência' , fontsize=6)
+    axs[1, 0].grid(axis='x', alpha=0.75)
+
+    transmission_counts = df['cambio'].value_counts()
+    transmission_counts.plot(kind='bar', color='skyblue', edgecolor='black', ax=axs[1, 1])
+    axs[1, 1].set_xticklabels(axs[1, 1].get_xticklabels(), rotation=45, fontsize=6)
+    axs[1, 1].set_title('Tipos de Transmissão' , fontsize=8)
+    axs[1, 1].set_ylabel('Frequência', fontsize=6)
+    axs[1, 1].grid(axis='y', alpha=0.75)
+
+    top_brands = df['marca'].value_counts().nlargest(10)
+    top_brands.plot(kind='bar', color='skyblue', edgecolor='black', ax=axs[2, 0])
+    axs[2, 0].set_xticklabels(axs[2, 0].get_xticklabels(), rotation=45, fontsize=6)
+    axs[2, 0].set_ylabel('Frequência', fontsize=8)
+    axs[2, 0].grid(axis='y', alpha=0.75)
+
+    mean_price_by_brand = df.groupby('marca')['preco'].mean()
+    sns.barplot(x=mean_price_by_brand.index, y=mean_price_by_brand.values, ax=axs[2, 1])
+    axs[2, 1].set_xticklabels(axs[2, 1].get_xticklabels(), rotation=75, fontsize=7)
+    axs[2, 1].set_xlabel('Marca', fontsize=8)
+    axs[2, 1].set_ylabel('Preço Médio', fontsize=6)
+
+    plt.subplots_adjust(hspace=0.5)
+    plt.tight_layout()
+    plt.show()
+
+
+def missing_Data_Verification(df):
+    #VERIFICAÇÃO DE DADOS FALTANTES
+    print("Verificando dados faltantes..\n")
+    print('TOTAL Null\n')
+    print(df.isnull().sum(),'\n')
+    print('TOTAL NA\n')
+    print(df.isna().sum(),)
+    #Retirada da coluna vazia veiculo_alienado
+    columns_to_drop = ['veiculo_alienado','elegivel_revisao']
+    df = df.drop(columns=columns_to_drop)
+    
+    return df
+
+def correlation_features(df):
+    #CORRELAÇÃO ENTRE AS VARIÁVEIS
+    plt.figure(figsize=(12,12))
+    sns.set_theme()
+    sns.heatmap(df.corr(), annot=True, fmt=".1f",linewidth=.5 ,cmap="RdBu")
+    plt.show()
+    # Correlação entre as variáveis e a váriavel alvo
+    correlation = df.corr()["preco"].sort_values(ascending = False)
+    print("Correlação entre as variáveis e a váriavel alvo:\n")
+    print(correlation.head(10))  
+
+
+def verification_hypotheses(df):
+    
+    #VERIFICAÇÃO DE HIPÓTESES
+    print("Checando hipóteses..\n")
+    # Hipótese 1: Carros de marcas populares são mais baratos do que os de outras marcas.
+    popular_brands = ['VOLKSWAGEN', 'CHEVROLET', 'FORD']
+    avg_price_popular_brands = df[df['marca'].isin(popular_brands)]['preco'].mean()
+    avg_price_other_brands = df[~df['marca'].isin(popular_brands)]['preco'].mean()
+
+    print("Hipótese 1: Carros de marcas populares são mais baratos do que os de outras marcas")
+    print(f"Preço médio dos carros de marcas populares: R$ {avg_price_popular_brands:.2f}")
+    print(f"Preço médio dos carros de outras marcas: R$ {avg_price_other_brands:.2f}\n")
+
+    # Hipótese 2: Carros com transmissão automática são mais caros do que carros com outros tipos de transmissão.
+    avg_price_auto = df[df['cambio'] == 'Automática']['preco'].mean()
+    avg_price_other_trans = df[df['cambio'] != 'Automática']['preco'].mean()
+
+    print("Hipótese 2: Carros com transmissão automática são mais caros do que carros com outros tipos de transmissão")
+    print(f"Preço médio dos carros com transmissão automática: R$ {avg_price_auto:.2f}")
+    print(f"Preço médio dos carros com outros tipos de transmissão: R$ {avg_price_other_trans:.2f}\n")
+
+
+    # Hipótese 3: Carros que ainda estão na garantia de fábrica são mais caros do que aqueles que não estão.
+    avg_price_warranty = df[df['garantia_de_fábrica'] == 'Garantia de fábrica']['preco'].mean()
+    avg_price_no_warranty = df[df['garantia_de_fábrica'] != 'Garantia de fábrica']['preco'].mean()
+
+    print("Hipótese 3: Carros que ainda estão na garantia de fábrica são mais caros do que aqueles que não estão")
+    print(f"Preço médio dos carros na garantia de fábrica: R$ {avg_price_warranty:.2f}")
+    print(f"Preço médio dos carros sem garantia de fábrica: R$ {avg_price_no_warranty:.2f}\n")
+
+    # Pergunta de negócio 1: Qual é o melhor estado registrado na base de dados para vender um carro de marca popular e por quê?
+    df_popular_brands = df[df['marca'].isin(popular_brands)]
+    avg_price_state_popular_brands = df_popular_brands.groupby('estado_vendedor')['preco'].mean()
+    best_state_to_sell_popular_brand = avg_price_state_popular_brands.idxmax()
+
+    print("Pergunta de negócios 1: Qual é o melhor estado registrado na base de dados para vender um carro de marca popular e por quê?")
+    print(f"Melhor estado para vender carro de marca popular: {best_state_to_sell_popular_brand}\n")
+
+    # Pergunta de negócio 2: Qual é o melhor estado para comprar uma picape com transmissão automática e por quê?
+    df_automatic_pickups = df[(df['cambio'] == 'Automática') & (df['tipo'] == 'Picape')]
+    avg_price_state_automatic_pickups = df_automatic_pickups.groupby('estado_vendedor')['preco'].mean()
+    best_state_to_buy_automatic_pickup = avg_price_state_automatic_pickups.idxmin()
+
+    print("Pergunta de negócios 2: Qual é o melhor estado para comprar uma picape com transmissão automática e por quê?")
+    print(f"Melhor estado para comprar picape automática: {best_state_to_buy_automatic_pickup}\n")
+
+    # Pergunta de negócio 3: Qual é o melhor estado para comprar carros que ainda estão na garantia de fábrica e por quê?
+    df_warranty = df[df['garantia_de_fábrica'] == 'Garantia de fábrica']
+    avg_price_state_warranty = df_warranty.groupby('estado_vendedor')['preco'].mean()
+    best_state_to_buy_warranty = avg_price_state_warranty.idxmin()
+
+    print("Pergunta de negócios 3: Qual é o melhor estado para comprar carros que ainda estão na garantia de fábrica e por quê?")
+    print(f"Melhor estado para comprar carro com garantia de fábrica: {best_state_to_buy_warranty}\n")
+
+
+def missing_Values(df):
+    # Tratamento de valores ausentes
+    print("tratando valores ausentes.\n")
+    df.dropna(inplace=True)
+    
+    return df
+
+def separation_Data_Training_Test(df):
+    #Separação dos dados em Treino e Teste
+    #DADOS DAS VARIÁVEIS INDEPENDENTES
+    X = df.drop(["preco"], axis = 1)
+    #DADOS DA VARIÁVEL DEPENDENTE, QUE QUEREMOS ENCONTRAR
+    y = df["preco"]
+    
+    return X,y
+
+def division_the_dataframe_test_training(X,y):
+    #DIVISÃO DO DATA FRAME EM TEST E TREINAMENTO 80% TREINAMENTO E 20% TESTE
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=50)
+    #Tamanho das Amostras de Treino e Teste
+    print(f"X_train dimensões {X_train.shape} e tamanho {X_train.size}")
+    print(f"X_test dimensões {X_test.shape} e tamanho {X_test.size}")
+    print(f"y_train dimensões {y_train.shape} e tamanho {y_train.size}")
+    print(f"y_test dimensões {y_test.shape} e tamanho {y_test.size}")
+    
+    return X_train, y_train, X_test ,y_test
+
+
+def calculate_metrics(y_test, y_pred):
+    result = {
+        'MAE': mean_absolute_error(y_test, y_pred),
+        'MSE': mean_squared_error(y_test, y_pred),
+        'R2': r2_score(y_test, y_pred),
+    }
+
+    return result
+
+def print_results(results):
+    model_names = ['Modelo Regressão Linear', 'Modelo Regressão Linear com StandardScaler', 'Modelo Regressão Linear com PolynomialFeatures', 'Modelo Regressão de Floresta Aleatória']
+    for i, result in enumerate(results):
+        print(f'Modelo {model_names[i]}:')
+        print('MAE:', result['MAE'])
+        print('MSE:', result['MSE'])
+        print('R2:', result['R2'])
+        print('----------')
+
+
+def print_cross_val_score_results(model, X_test, y_pred, model_name):
+    cv_score = np.sqrt(-cross_val_score(model, X_test, y_pred, cv=5, scoring='neg_mean_squared_error'))
+    cv_mean = cv_score.mean()
+    cv_std = cv_score.std()
+    print("Modelo: {}".format(model_name))
+    print("-------" * 10)
+    print("Média do erro quadrático médio (RMSE) na validação cruzada (Cross-Validation): {:.6f}".format(cv_mean))
+    print("Desvio padrão do erro quadrático médio (RMSE) na validação cruzada (Cross-Validation): {:.6f}".format(cv_std))
+    print("Shape da predição:", y_pred.shape)
+    print("Scores do erro quadrático médio negativo (neg_mean_squared_error) na validação cruzada (Cross-Validation): ", cv_score)
+    print("\n")
+
+
+def train_linear_regression(X_train, y_train, X_test, y_test):
+    # Criando o modelo LinearRegression()
+    regLinear = LinearRegression()
+    # Realizar treinamento do modelo
+    regLinear.fit(X_train, y_train)
+    # Realizar predição com os dados separados para teste
+    pred_regLinear = regLinear.predict(X_test)
+
+    # Cálculo das métricas
+    result = calculate_metrics(y_test, pred_regLinear)
+
+    # Preparar dados para plotagem
+    plot_data = (pred_regLinear, y_test, 'Valores preditos x  Valores reais : Modelo Regressão Linear')
+
+    return pred_regLinear,regLinear,result, plot_data
+
+
+def train_linear_regression_with_scaler(X_train, y_train, X_test, y_test):
+    scaler = StandardScaler()
+    X_train_scaler = scaler.fit_transform(X_train)
+    X_test_scaler = scaler.transform(X_test)
+
+    rLinear = LinearRegression()
+    rLinear.fit(X_train_scaler,y_train)
+    y_pred_scaler = rLinear.predict(X_test_scaler)
+
+    result = calculate_metrics(y_test, y_pred_scaler)
+
+    plot_data = (y_pred_scaler, y_test, 'Valores previstos x Valores reais: Modelo Regressão Linear com StandardScaler()')
+
+    return X_test_scaler, y_pred_scaler,rLinear,result, plot_data
+
+
+def train_linear_regression_with_poly(X_train, y_train, X_test, y_test):
+    poly = PolynomialFeatures()
+    X_train_poly = poly.fit_transform(X_train)
+    X_test_poly = poly.fit_transform(X_test)
+
+    rLinear_poly = LinearRegression()
+    rLinear_poly.fit(X_train_poly,y_train)
+    y_pred_poly = rLinear_poly.predict(X_test_poly)
+
+    result = calculate_metrics(y_test, y_pred_poly)
+
+    plot_data = (y_pred_poly, y_test, 'Valores preditos x  Valores reais: Modelo Regressão Linear com PolynomialFeatures() ')
+
+    return X_test_poly, y_pred_poly,rLinear_poly,result, plot_data
+
+
+def train_random_forest(X_train, y_train, X_test, y_test):
+    print("Treinando modelo de random forest...")
+    forest_reg = RandomForestRegressor(max_depth= None, min_samples_split= 10, n_estimators= 300,random_state=10)
+    forest_reg.fit(X_train , y_train)
+    y_pred_forest = forest_reg.predict(X_test)
+
+    result = calculate_metrics(y_test, y_pred_forest)
+
+    plot_data = (y_pred_forest, y_test, 'Valores preditos x  Valores reais: Random Forest Regressor')
+
+    return y_pred_forest,forest_reg, result, plot_data
+
+
+def plot_results(plot_data):
+    for plot in plot_data:
+        y_pred, y_test, title = plot
+        y_test = np.array(y_test)
+        plt.figure(figsize=(15, 5))
+        plt.plot(y_pred[:100], linewidth=1.5, color='r')
+        plt.plot(y_test[:100], linewidth=1.2, color='b')
+        plt.title(title, size=18)
+        plt.legend(['Predições', 'Real'], fontsize=12)
+        plt.show()
+
+def training_the_models(X_train, y_train, X_test ,y_test):
+    # Armazenar resultados para comparação
+    results = []
+
+    # Armazenar plots para visualização
+    plots = []
+
+    # Modelo LinearRegression()
+    pred_regLinear,regLinear,result, plot = train_linear_regression(X_train, y_train, X_test, y_test)
+    results.append(result)
+    plots.append(plot)
+    print_cross_val_score_results(regLinear, X_test, pred_regLinear, "Regressão Linear")
+
+    # Modelo LinearRegression() com dados normalizados StandardScaler()
+    X_test_scaler, y_pred_scaler,rLinear, result, plot = train_linear_regression_with_scaler(X_train, y_train, X_test, y_test)
+    results.append(result)
+    plots.append(plot)
+    print_cross_val_score_results(rLinear, X_test_scaler, y_pred_scaler, "LinearRegression() com dados normalizados StandardScaler")
+
+    # Modelo LinearRegression() com dados normalizados PolynomialFeatures()
+    X_test_poly, y_pred_poly, rLinear_poly,result, plot = train_linear_regression_with_poly(X_train, y_train, X_test, y_test)
+    results.append(result)
+    plots.append(plot)
+    print_cross_val_score_results(rLinear_poly, X_test_poly, y_pred_poly, "Modelo LinearRegression() com dados normalizados PolynomialFeatures")
+
+    # Modelo RandomForestRegressor()
+    y_pred_forest, forest_reg,result, plot = train_random_forest(X_train, y_train, X_test, y_test)
+    results.append(result)
+    plots.append(plot)
+    print_cross_val_score_results(forest_reg, X_test, y_pred_forest, "Modelo RandomForestRegressor")
+
+
+    return forest_reg, results, plots
+
+
+
+def main():
+    # Carregar os dados
+    df = load_training_Data()
+    
+    # Análise Exploratória dos Dados
+    exploratory_Data_Analysis(df)
+    
+    # Verificação de dados faltantes
+    df= missing_Data_Verification(df)
+    
+    # Visualização dos dados
+    visualize_data(df)
+    # Verificação de hipóteses
+    verification_hypotheses(df)
+    
+    # Transformando as colunas categóricas em números
+    df = transforming_categorical_columns(df)
+    
+    #plota as correlações ao preço
+    correlation_features(df)
+    
+    # Tratamento de valores ausentes
+    df=missing_Values(df)
+    
+    # Separação dos dados em treino e teste
+    X, y = separation_Data_Training_Test(df)
+    
+    # Divisão dos dados em treinamento e teste
+    X_train, y_train, X_test, y_test = division_the_dataframe_test_training(X, y)
+    
+    # Treinamento dos modelos e exibição dos resultados
+    forest_reg,results,plot_data  = training_the_models(X_train, y_train, X_test, y_test)
+    
+    
+   
+
+
+    # Exibir resultados dos dados de treinamento
+    print_results(results)
+    
+    plot_results(plot_data)
+    # Prever os preços para os dados de teste usando o modelo treinado
+    predict_test_data(forest_reg)
+
+if __name__ == "__main__":
+    main()
