@@ -43,20 +43,6 @@ def exploratory_Data_Analysis(df):
     print("Informações sobre o dataset:")
     print(df.info())
     
-# def data_Enrichment(df):
-#     #ENRIQUECIMENTO DOS DADOS
-#     # Criando a variável 'idade_do_carro'
-#     df['idade_do_carro'] = pd.to_datetime('today').year - df['ano_de_fabricacao']
-#     # Criando a variável 'luxo'
-#     marcas_de_luxo = ['BMW', 'Mercedes-Benz', 'Audi', 'Lexus', 'Porsche', 'Ferrari', 'Lamborghini'] 
-#     df['luxo'] = df['marca'].apply(lambda x: 1 if x in marcas_de_luxo else 0)
-#     df['marca_modelo'] = df['marca'] + "_" + df['modelo']
-#     print("Criando colunas novas com dados já existentes\n")
-#     df.head()
-    
-#     return df
-    
-    
 def predict_test_data(model):
     # Carregar os dados de teste
     print("Carregando os dados de teste...")
@@ -87,9 +73,7 @@ def predict_test_data(model):
     predictions.to_csv('predictions.csv', index=False)
 
     print("Previsões concluídas!")
-
-
-
+    
 
 def transforming_categorical_columns(df):
     #TRANSFORMANDO CATEGORIAS EM VALORES
@@ -111,10 +95,8 @@ def transforming_categorical_columns(df):
         pass
         
     return df_encoded
-   
 
 def visualize_data(df):
-    #AVALIAÇÃO
     # Visualizando os dados
     print("Carregando graficos para vizualização dos dados.\n")
 
@@ -165,7 +147,6 @@ def visualize_data(df):
     plt.tight_layout()
     plt.show()
 
-
 def missing_Data_Verification(df):
     #VERIFICAÇÃO DE DADOS FALTANTES
     print("Verificando dados faltantes..\n")
@@ -173,29 +154,26 @@ def missing_Data_Verification(df):
     print(df.isnull().sum(),'\n')
     print('TOTAL NA\n')
     print(df.isna().sum(),)
-    #Retirada da coluna vazia veiculo_alienado
+    #Retirada da coluna vazia veiculo_alienado e elegivel_revisao
     columns_to_drop = ['veiculo_alienado','elegivel_revisao']
     df = df.drop(columns=columns_to_drop)
     
     return df
 
 def correlation_features(df):
-    #CORRELAÇÃO ENTRE AS VARIÁVEIS
+    #CORRELAÇÃO
     plt.figure(figsize=(12,12))
     sns.set_theme()
     sns.heatmap(df.corr(), annot=True, fmt=".1f",linewidth=.5 ,cmap="RdBu")
     plt.show()
-    # Correlação entre as variáveis e a váriavel alvo
     correlation = df.corr()["preco"].sort_values(ascending = False)
     print("Correlação entre as variáveis e a váriavel alvo:\n")
     print(correlation.head(10))  
-
 
 def verification_hypotheses(df):
     
     #VERIFICAÇÃO DE HIPÓTESES
     print("Checando hipóteses..\n")
-    # Hipótese 1: Carros de marcas populares são mais baratos do que os de outras marcas.
     popular_brands = ['VOLKSWAGEN', 'CHEVROLET', 'FORD']
     avg_price_popular_brands = df[df['marca'].isin(popular_brands)]['preco'].mean()
     avg_price_other_brands = df[~df['marca'].isin(popular_brands)]['preco'].mean()
@@ -204,7 +182,6 @@ def verification_hypotheses(df):
     print(f"Preço médio dos carros de marcas populares: R$ {avg_price_popular_brands:.2f}")
     print(f"Preço médio dos carros de outras marcas: R$ {avg_price_other_brands:.2f}\n")
 
-    # Hipótese 2: Carros com transmissão automática são mais caros do que carros com outros tipos de transmissão.
     avg_price_auto = df[df['cambio'] == 'Automática']['preco'].mean()
     avg_price_other_trans = df[df['cambio'] != 'Automática']['preco'].mean()
 
@@ -213,7 +190,6 @@ def verification_hypotheses(df):
     print(f"Preço médio dos carros com outros tipos de transmissão: R$ {avg_price_other_trans:.2f}\n")
 
 
-    # Hipótese 3: Carros que ainda estão na garantia de fábrica são mais caros do que aqueles que não estão.
     avg_price_warranty = df[df['garantia_de_fábrica'] == 'Garantia de fábrica']['preco'].mean()
     avg_price_no_warranty = df[df['garantia_de_fábrica'] != 'Garantia de fábrica']['preco'].mean()
 
@@ -221,7 +197,6 @@ def verification_hypotheses(df):
     print(f"Preço médio dos carros na garantia de fábrica: R$ {avg_price_warranty:.2f}")
     print(f"Preço médio dos carros sem garantia de fábrica: R$ {avg_price_no_warranty:.2f}\n")
 
-    # Pergunta de negócio 1: Qual é o melhor estado registrado na base de dados para vender um carro de marca popular e por quê?
     df_popular_brands = df[df['marca'].isin(popular_brands)]
     avg_price_state_popular_brands = df_popular_brands.groupby('estado_vendedor')['preco'].mean()
     best_state_to_sell_popular_brand = avg_price_state_popular_brands.idxmax()
@@ -229,7 +204,6 @@ def verification_hypotheses(df):
     print("Pergunta de negócios 1: Qual é o melhor estado registrado na base de dados para vender um carro de marca popular e por quê?")
     print(f"Melhor estado para vender carro de marca popular: {best_state_to_sell_popular_brand}\n")
 
-    # Pergunta de negócio 2: Qual é o melhor estado para comprar uma picape com transmissão automática e por quê?
     df_automatic_pickups = df[(df['cambio'] == 'Automática') & (df['tipo'] == 'Picape')]
     avg_price_state_automatic_pickups = df_automatic_pickups.groupby('estado_vendedor')['preco'].mean()
     best_state_to_buy_automatic_pickup = avg_price_state_automatic_pickups.idxmin()
@@ -237,7 +211,6 @@ def verification_hypotheses(df):
     print("Pergunta de negócios 2: Qual é o melhor estado para comprar uma picape com transmissão automática e por quê?")
     print(f"Melhor estado para comprar picape automática: {best_state_to_buy_automatic_pickup}\n")
 
-    # Pergunta de negócio 3: Qual é o melhor estado para comprar carros que ainda estão na garantia de fábrica e por quê?
     df_warranty = df[df['garantia_de_fábrica'] == 'Garantia de fábrica']
     avg_price_state_warranty = df_warranty.groupby('estado_vendedor')['preco'].mean()
     best_state_to_buy_warranty = avg_price_state_warranty.idxmin()
@@ -245,9 +218,7 @@ def verification_hypotheses(df):
     print("Pergunta de negócios 3: Qual é o melhor estado para comprar carros que ainda estão na garantia de fábrica e por quê?")
     print(f"Melhor estado para comprar carro com garantia de fábrica: {best_state_to_buy_warranty}\n")
 
-
 def missing_Values(df):
-    # Tratamento de valores ausentes
     print("tratando valores ausentes.\n")
     df.dropna(inplace=True)
     
@@ -273,7 +244,6 @@ def division_the_dataframe_test_training(X,y):
     
     return X_train, y_train, X_test ,y_test
 
-
 def calculate_metrics(y_test, y_pred):
     result = {
         'MAE': mean_absolute_error(y_test, y_pred),
@@ -292,7 +262,6 @@ def print_results(results):
         print('R2:', result['R2'])
         print('----------')
 
-
 def print_cross_val_score_results(model, X_test, y_pred, model_name):
     cv_score = np.sqrt(-cross_val_score(model, X_test, y_pred, cv=5, scoring='neg_mean_squared_error'))
     cv_mean = cv_score.mean()
@@ -304,7 +273,6 @@ def print_cross_val_score_results(model, X_test, y_pred, model_name):
     print("Shape da predição:", y_pred.shape)
     print("Scores do erro quadrático médio negativo (neg_mean_squared_error) na validação cruzada (Cross-Validation): ", cv_score)
     print("\n")
-
 
 def train_linear_regression(X_train, y_train, X_test, y_test):
     # Criando o modelo LinearRegression()
@@ -322,7 +290,6 @@ def train_linear_regression(X_train, y_train, X_test, y_test):
 
     return pred_regLinear,regLinear,result, plot_data
 
-
 def train_linear_regression_with_scaler(X_train, y_train, X_test, y_test):
     scaler = StandardScaler()
     X_train_scaler = scaler.fit_transform(X_train)
@@ -338,7 +305,6 @@ def train_linear_regression_with_scaler(X_train, y_train, X_test, y_test):
 
     return X_test_scaler, y_pred_scaler,rLinear,result, plot_data
 
-
 def train_linear_regression_with_poly(X_train, y_train, X_test, y_test):
     poly = PolynomialFeatures()
     X_train_poly = poly.fit_transform(X_train)
@@ -353,7 +319,6 @@ def train_linear_regression_with_poly(X_train, y_train, X_test, y_test):
     plot_data = (y_pred_poly, y_test, 'Valores preditos x  Valores reais: Modelo Regressão Linear com PolynomialFeatures() ')
 
     return X_test_poly, y_pred_poly,rLinear_poly,result, plot_data
-
 
 def train_random_forest(X_train, y_train, X_test, y_test):
     print("Treinando modelo de random forest...")
@@ -414,7 +379,6 @@ def training_the_models(X_train, y_train, X_test ,y_test):
     return forest_reg, results, plots
 
 
-
 def main():
     # Carregar os dados
     df = load_training_Data()
@@ -448,10 +412,6 @@ def main():
     # Treinamento dos modelos e exibição dos resultados
     forest_reg,results,plot_data  = training_the_models(X_train, y_train, X_test, y_test)
     
-    
-   
-
-
     # Exibir resultados dos dados de treinamento
     print_results(results)
     
